@@ -6,22 +6,20 @@ import pdf_handler
 import re
 from client import model  
 
-def initialize_mindmap():
+def initialize_mindmap(base_context, json_save_path):
     """Initialize mind map based on the selected PDF using Gemini"""
-    if not st.session_state.get('selected_pdf'):
-        st.error("Please select a PDF first.")
-        return None
+    # if not st.session_state.get('selected_pdf'):
+    #     st.error("Please select a PDF first.")
+    #     return None
+    #
+    # pdf_file = st.session_state.uploaded_pdfs[st.session_state.selected_pdf]
+    # pdf_text = pdf_handler.extract_text_from_pdf(pdf_file)  # Assuming pdf_handler is defined
+    #
+    # if not pdf_text.strip():
+    #     st.error("No text available in the selected PDF.")
+    #     return None
 
-    pdf_file = st.session_state.uploaded_pdfs[st.session_state.selected_pdf]
-    pdf_text = pdf_handler.extract_text_from_pdf(pdf_file)  # Assuming pdf_handler is defined
-
-    if not pdf_text.strip():
-        st.error("No text available in the selected PDF.")
-        return None
-
-    prompt = f"""
-    Create a detailed mind map based on the following text:
-    {pdf_text[:10000]}  # Limit the text to 10000 characters
+    prompt = base_context + f"""
 
     Return the structure as JSON with:
     {{
@@ -52,6 +50,9 @@ def initialize_mindmap():
         response = model.generate_content(prompt)
         json_str = re.search(r'\{.*\}', response.text, re.DOTALL).group()
         graph_data = json.loads(json_str)
+        # Save the generated JSON to a file
+        with open(json_save_path, 'w') as f:
+            json.dump(graph_data, f, indent=4)
 
         # Create networkx graph
         G = nx.DiGraph()

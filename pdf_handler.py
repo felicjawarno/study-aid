@@ -1,47 +1,39 @@
+import json
+
 import fitz
 import streamlit as st
 from client import model
+import os
 
-def display_pdf_preview(pdf_file):
-    """Displays an enhanced PDF preview with better quality and layout"""
-    if pdf_file is None:
+def display_pdf_preview(pdf_path: str):
+    """Displays an enhanced PDF preview from a file path"""
+    if not os.path.exists(pdf_path):
+        st.warning("The file does not exist.")
         return
 
     try:
-        # Reset file pointer and read content
-        pdf_file.seek(0)
-        file_bytes = pdf_file.read()
-        
-        if not file_bytes:
-            st.warning("The PDF file is empty")
-            return
-
-        with fitz.open(stream=file_bytes, filetype="pdf") as doc:
-            # Create columns for better layout
+        with fitz.open(pdf_path) as doc:
             cols = st.columns(1)
-            
+
             for i, page in enumerate(doc):
-                if i >= 3:  # Limit to first 3 pages for performance
+                if i >= 3:
                     with cols[0]:
                         st.write(f"... and {len(doc) - 3} more pages")
                     break
-                
-                # Render page with higher quality
-                zoom = 1.5  # Increase zoom for better quality
+
+                zoom = 1.5
                 mat = fitz.Matrix(zoom, zoom)
                 pix = page.get_pixmap(matrix=mat, alpha=False)
-                
-                # Convert to RGB if needed
                 img_data = pix.tobytes("ppm")
-                
+
                 with cols[0]:
                     st.image(
                         img_data,
                         width=600,
                         caption=f"Page {i + 1} of {len(doc)}",
-                        use_container_width=True  # Updated parameter
+                        use_container_width=True
                     )
-                    
+
     except Exception as e:
         st.error(f"Failed to display PDF: {str(e)}")
         st.error("Please ensure this is a valid PDF file")
@@ -66,7 +58,7 @@ def generate_quiz_questions(pdf_text, num_questions=10, difficulty="Medium"):
         return ""
     
     prompt = f"""
-    Generate exactly {num_questions} multiple-choice questions about this text.
+    Generate exactly {num_questions} multiple-choice questions about this text. For each question explain context shortly so that reader may not rely on context, but just on question. 
     Difficulty: {difficulty}
     Format each question exactly like this:
     
@@ -88,7 +80,7 @@ def generate_quiz_questions(pdf_text, num_questions=10, difficulty="Medium"):
         st.error(f"Generation error: {str(e)}")
         return ""
 
-def parse_quiz_questions(quiz_text):
+def parse_quiz_questions(quiz_text, quiz_json_path):
     """Robust parsing of quiz questions"""
     if not quiz_text.strip():
         return []
@@ -118,5 +110,9 @@ def parse_quiz_questions(quiz_text):
     
     if current_question and current_question['options'] and current_question['answer']:
         questions.append(current_question)
+
+    # Save questions to JSON file
+    with open(quiz_json_path, 'w') as f:
+        json.dump(questions, f, indent=4)
     
     return questions

@@ -2,6 +2,7 @@ import streamlit as st
 import auth 
 import app 
 import time
+from database import database_manager
 
 # Session state initialization
 if "logged_in" not in st.session_state:
@@ -19,22 +20,24 @@ def generate_key(prefix):
 
 # Main routing logic
 def main():
-    if st.session_state.logged_in and st.session_state.page == "login":
-        st.session_state.page = "main"
-        st.session_state.rerun_key += 1
-        st.rerun()
-    
-    if st.session_state.page == "login":
-        auth.login()
-    elif st.session_state.page == "register":
-        auth.register()
-    elif st.session_state.page == "main" and st.session_state.logged_in:
-        app.main_app()
-    else:
-        st.warning("You must log in first.")
-        st.session_state.page = "login"
-        st.session_state.rerun_key += 1
-        st.rerun()
+    database_manager.sync_projects_directory()
+    app.main_app()
+    # if st.session_state.logged_in and st.session_state.page == "login":
+    #     st.session_state.page = "main"
+    #     st.session_state.rerun_key += 1
+    #     st.rerun()
+    #
+    # if st.session_state.page == "login":
+    #     auth.login()
+    # elif st.session_state.page == "register":
+    #     auth.register()
+    # elif st.session_state.page == "main" and st.session_state.logged_in:
+    #     app.main_app()
+    # else:
+    #     st.warning("You must log in first.")
+    #     st.session_state.page = "login"
+    #     st.session_state.rerun_key += 1
+    #     st.rerun()
 
 if __name__ == "__main__":
     main()
