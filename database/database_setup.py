@@ -2,7 +2,7 @@ import sqlite3
 from sqlite3 import Error
 from pathlib import Path
 
-def create_connection(db_file="projects.db"):
+def create_connection(db_file="database/projects.db"):
     """Create a database connection"""
     conn = None
     try:
@@ -14,7 +14,7 @@ def create_connection(db_file="projects.db"):
         print(f"Connection error: {e}")
         return None
 
-def setup_database(conn, sql_file="db_setup.sql"):
+def setup_database(conn, sql_file="database/db_setup.sql"):
     """Execute SQL from external file"""
     try:
         sql_script = Path(sql_file).read_text()

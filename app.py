@@ -88,8 +88,14 @@ def main_app():
     # Main content tabs
     tab1, tab2, tab3, tab4 = st.tabs(["📚 Materials", "❓ Ask Question", "🗺️ Mind Map", "📝 Quiz"])
 
-    with tab1:  # PDF Materials
+    with tab1:  # 📚 Materials
         st.header("PDF Tools")
+
+        # Resetowanie flagi po rerunie
+        if "file_deleted" not in st.session_state:
+            st.session_state.file_deleted = False
+        if st.session_state.file_deleted:
+            st.session_state.file_deleted = False
 
         if "selected_project" not in st.session_state or st.session_state.selected_project is None:
             st.warning("Please select a project from the sidebar.")
@@ -97,66 +103,60 @@ def main_app():
             project_id, project_name, project_path, _ = st.session_state.selected_project
             st.session_state.uploaded_pdfs = database_manager.get_all_documents(project_id)
 
-            uploaded_file = st.file_uploader("Upload PDF", type=["pdf"])
+            # Obsługa uploadu, tylko jeśli nic nie zostało właśnie usunięte
+            if not st.session_state.file_deleted:
+                uploaded_file = st.file_uploader("Upload PDF", type=["pdf"])
+                if uploaded_file:
+                    os.makedirs(os.path.join(project_path, "documents"), exist_ok=True)
+                    save_path = os.path.join(project_path, "documents", uploaded_file.name)
 
-            if uploaded_file:
-                os.makedirs(project_path, exist_ok=True)
-                save_path = os.path.join(project_path, "documents", uploaded_file.name)
+                    doc_id = database_manager.insert_document(project_id, uploaded_file.name, uploaded_file.name)
 
-                doc_id = database_manager.insert_document(project_id, uploaded_file.name, uploaded_file.name)
+                    if doc_id is not None:
+                        with open(save_path, "wb") as f:
+                            f.write(uploaded_file.getbuffer())
+                        st.session_state.uploaded_pdfs[uploaded_file.name] = doc_id
+                        database_manager.parse_insert_document(project_id, doc_id)
+                else:
+                    st.warning("No file uploaded yet.")
 
-                if doc_id is not None:
-                    with open(save_path, "wb") as f:
-                        f.write(uploaded_file.getbuffer())
-                    st.session_state.uploaded_pdfs[uploaded_file.name] = doc_id
-                    database_manager.parse_insert_document(project_id, doc_id)
-            else:
-                st.warning("No file uploaded yet.")
+            # Wybór i podgląd PDF
+            if st.session_state.uploaded_pdfs:
+                selected_pdf = st.selectbox(
+                    "Select PDF",
+                    list(st.session_state.uploaded_pdfs.keys()),
+                    key="pdf_selector"
+                )
+                st.session_state.selected_pdf = selected_pdf
 
-            selected_pdf = st.selectbox(
-                "Select PDF",
-                list(st.session_state.uploaded_pdfs.keys()),
-                key="pdf_selector"
-            )
-            st.session_state.selected_pdf = selected_pdf
+                if st.session_state.selected_pdf:
+                    pdf_path = os.path.join(project_path, "documents", selected_pdf)
 
-            if st.session_state.selected_pdf:
-                pdf_path = os.path.join(project_path, "documents", selected_pdf)
+                    with st.expander("📄 PDF Preview", expanded=False):
+                        try:
+                            pdf_handler.display_pdf_preview(pdf_path)
+                        except Exception as e:
+                            st.error(f"Failed to display PDF: {str(e)}")
 
-                with st.expander("📄 PDF Preview", expanded=False):
-                    try:
-                        pdf_handler.display_pdf_preview(pdf_path)
-                    except Exception as e:
-                        st.error(f"Failed to display PDF: {str(e)}")
+                    if st.button("🗑️ Delete this PDF"):
+                        try:
+                            # Usuń z systemu plików
+                            if os.path.exists(pdf_path):
+                                os.remove(pdf_path)
 
-                if st.button("🗑️ Delete this PDF"):
-                    try:
-                        # --- Delete from filesystem ---
-                        if os.path.exists(pdf_path):
-                            os.remove(pdf_path)
+                            # Usuń z bazy danych
+                            doc_id = st.session_state.uploaded_pdfs[st.session_state.selected_pdf]
+                            database_manager.delete_document(doc_id)
 
-                        database_manager.delete_document(st.session_state.uploaded_pdfs[st.session_state.selected_pdf])
-                        st.success(f"Deleted {st.session_state.selected_pdf} from database and disk.")
-                        # Optionally clear from session state
-                        del st.session_state.uploaded_pdfs[st.session_state.selected_pdf]
-                        st.session_state.selected_pdf = None
-                        st.rerun()
+                            # Aktualizuj stan sesji
+                            st.success(f"Deleted {st.session_state.selected_pdf} from database and disk.")
+                            del st.session_state.uploaded_pdfs[st.session_state.selected_pdf]
+                            st.session_state.selected_pdf = None
+                            st.session_state.file_deleted = True
+                            st.rerun()
 
-                    except Exception as e:
-                        st.error(f"Failed to delete PDF: {str(e)}")
-                
-                # with st.expander("💬 Ask Questions", expanded=False):
-                #     question = st.text_input("Your question:")
-                #     if question:
-                #         with st.spinner("Analyzing content..."):
-                #             try:
-                #                 pdf_text = pdf_handler.extract_text_from_pdf(pdf_file)
-                #                 response = model.generate_content(
-                #                     f"Document excerpt: {pdf_text[:5000]}\nQuestion: {question}"
-                #                 )
-                #                 st.info(f"**Answer:** {response.text}")
-                #             except Exception as e:
-                #                 st.error(f"Failed to generate answer: {str(e)}")
+                        except Exception as e:
+                            st.error(f"Failed to delete PDF: {str(e)}")
 
     with tab2:
         st.header("❓ Ask Questions")

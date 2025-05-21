@@ -34,12 +34,20 @@ A Streamlit-powered application that helps students and learners organize study 
 
 ## Installation 🛠️
 
-1. Clone the repository:
+1. Install teseract https://github.com/tesseract-ocr/tesseract
+   - For Windows, download the installer and add the installation path to your system's PATH variable.
+   - For Linux, use the package manager:
+     ```bash
+     sudo apt-get install tesseract-ocr
+     ```
+     
+2. Clone the repository:
  ```bash
    https://github.com/felicjawarno/study-aid.git
    cd study-assistant
 
    venv\Scripts\activate
    pip install -r requirenments.txt
+   python .\database\database_setup.py
    streamlit run main.py
  

@@ -6,7 +6,7 @@ import io
 import google.generativeai as genai
 import numpy as np
 
-genai.configure(api_key="AIzaSyCNq01v5NhzaB0rrB_TnqyIY3WjyGEGgRk")
+genai.configure(api_key="api_key")
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 def retrieve_question_answer(question):
@@ -28,7 +28,7 @@ class PDFParser:
     def __init__(self):
         self.parsing_thread = None
         # self.model = genai.TextEmbeddingModel(model_name="models/embedding-001")
-        # self.client = genai.Client(api_key='AIzaSyCWKc-xHdmzzChctwIkOh1ntZXRBG8lgjc')
+        # self.client = genai.Client(api_key='apikey')
         self.last_ve = None
         self.last_pdf = None
 

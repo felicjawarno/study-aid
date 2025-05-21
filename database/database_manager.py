@@ -113,7 +113,6 @@ def get_RAG_mind_map_contex(topic, project_id):
      Create a mind map based on the topic of {topic}."""
     return context, chunks
 
-
 def search_similar_chunks(query_vector: np.ndarray, project_id: int, top_k=5):
     with connect() as conn:
         c = conn.cursor()
@@ -138,10 +137,12 @@ def cosine_similarity(vec1, vec2):
 
 def sync_projects_directory():
     base_dir = os.path.join(os.getcwd(), 'projects')
+    os.makedirs(base_dir, exist_ok=True)
     existing_projects = {name: (pid, path) for pid, name, path, _ in get_all_projects()}
 
     for project_name in os.listdir(base_dir):
         project_path = os.path.join(base_dir, project_name)
+        os.makedirs(os.path.join(project_path, "documents"), exist_ok=True)
         if not os.path.isdir(project_path):
             continue  # Skip non-directories
 

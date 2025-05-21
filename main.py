@@ -20,6 +20,7 @@ def generate_key(prefix):
 
 # Main routing logic
 def main():
+    # database_setup.main()
     database_manager.sync_projects_directory()
     app.main_app()
     # if st.session_state.logged_in and st.session_state.page == "login":

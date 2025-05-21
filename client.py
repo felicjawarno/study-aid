@@ -5,7 +5,7 @@ import json
 
 
 # Configure API key
-genai.configure(api_key="AIzaSyCNq01v5NhzaB0rrB_TnqyIY3WjyGEGgRk")
+genai.configure(api_key="apikey")
 
 # Create model instance
 model = genai.GenerativeModel("gemini-2.0-flash")
