@@ -5,8 +5,13 @@ from PIL import Image
 import io
 import google.generativeai as genai
 import numpy as np
+import os
+from dotenv import load_dotenv
 
-genai.configure(api_key="api_key")
+load_dotenv()
+api_key = os.getenv("API_KEY")
+genai.configure(api_key=api_key)
+
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 def retrieve_question_answer(question):

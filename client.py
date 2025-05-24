@@ -2,10 +2,12 @@ import google.generativeai as genai
 import streamlit as st
 import networkx as nx
 import json
+import os
+from dotenv import load_dotenv
 
-
-# Configure API key
-genai.configure(api_key="apikey")
+load_dotenv()
+api_key = os.getenv("API_KEY")
+genai.configure(api_key=api_key)
 
 # Create model instance
 model = genai.GenerativeModel("gemini-2.0-flash")

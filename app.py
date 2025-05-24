@@ -9,7 +9,6 @@ import os
 import shutil
 import tempfile
 
-
 def ask_question_on_notes(question, notes_text):
     response = model.generate_content(
         model="gemini-2.0-flash",
@@ -46,15 +45,9 @@ def main_app():
 
     # App header
     st.title(f"📚 Study Assistant - {st.session_state.username}")
-    
+
     # Sidebar
     with st.sidebar:
-        # st.header("Account")
-        # if st.button("Logout"):
-        #     for key in list(st.session_state.keys()):
-        #         del st.session_state[key]
-        #     st.rerun()
-
         st.header("Project Manager")
         projects = database_manager.get_all_projects()
         project_names = [p[1] for p in projects]
@@ -73,7 +66,6 @@ def main_app():
 
         else:
             new_name = st.text_input("Project name")
-            # new_path = st.text_input("Path to contents", value=os.getcwd())
             new_path = os.path.join(os.getcwd(), 'projects', new_name)
             if st.button("Create Project"):
                 if new_name and new_path:
@@ -86,16 +78,10 @@ def main_app():
                     st.warning("Please provide both name and path.")
 
     # Main content tabs
-    tab1, tab2, tab3, tab4 = st.tabs(["📚 Materials", "❓ Ask Question", "🗺️ Mind Map", "📝 Quiz"])
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["📚 Materials", "❓ Ask Question", "🗺️ Mind Map", "📝 Quiz", "🃏 Flashcards"])
 
     with tab1:  # 📚 Materials
         st.header("PDF Tools")
-
-        # Resetowanie flagi po rerunie
-        if "file_deleted" not in st.session_state:
-            st.session_state.file_deleted = False
-        if st.session_state.file_deleted:
-            st.session_state.file_deleted = False
 
         if "selected_project" not in st.session_state or st.session_state.selected_project is None:
             st.warning("Please select a project from the sidebar.")
@@ -103,22 +89,20 @@ def main_app():
             project_id, project_name, project_path, _ = st.session_state.selected_project
             st.session_state.uploaded_pdfs = database_manager.get_all_documents(project_id)
 
-            # Obsługa uploadu, tylko jeśli nic nie zostało właśnie usunięte
-            if not st.session_state.file_deleted:
-                uploaded_file = st.file_uploader("Upload PDF", type=["pdf"])
-                if uploaded_file:
-                    os.makedirs(os.path.join(project_path, "documents"), exist_ok=True)
-                    save_path = os.path.join(project_path, "documents", uploaded_file.name)
+            uploaded_file = st.file_uploader("Upload PDF", type=["pdf"])
+            if uploaded_file:
+                os.makedirs(os.path.join(project_path, "documents"), exist_ok=True)
+                save_path = os.path.join(project_path, "documents", uploaded_file.name)
 
-                    doc_id = database_manager.insert_document(project_id, uploaded_file.name, uploaded_file.name)
+                doc_id = database_manager.insert_document(project_id, uploaded_file.name, uploaded_file.name)
 
-                    if doc_id is not None:
-                        with open(save_path, "wb") as f:
-                            f.write(uploaded_file.getbuffer())
-                        st.session_state.uploaded_pdfs[uploaded_file.name] = doc_id
-                        database_manager.parse_insert_document(project_id, doc_id)
-                else:
-                    st.warning("No file uploaded yet.")
+                if doc_id is not None:
+                    with open(save_path, "wb") as f:
+                        f.write(uploaded_file.getbuffer())
+                    st.session_state.uploaded_pdfs[uploaded_file.name] = doc_id
+                    database_manager.parse_insert_document(project_id, doc_id)
+            else:
+                st.warning("No file uploaded yet.")
 
             # Wybór i podgląd PDF
             if st.session_state.uploaded_pdfs:
@@ -152,7 +136,6 @@ def main_app():
                             st.success(f"Deleted {st.session_state.selected_pdf} from database and disk.")
                             del st.session_state.uploaded_pdfs[st.session_state.selected_pdf]
                             st.session_state.selected_pdf = None
-                            st.session_state.file_deleted = True
                             st.rerun()
 
                         except Exception as e:
@@ -300,3 +283,255 @@ def main_app():
                             st.balloons()
                             st.success(f"Final score: {quiz['score']}/{len(quiz['questions'])}")
                             quiz['active'] = False
+
+    with tab5:
+        st.header("🃏 Flashcards")
+
+        project_selected = "selected_project" in st.session_state and st.session_state.selected_project is not None
+
+        if not project_selected:
+            st.warning("Please select a project from the sidebar.")
+        else:
+            project_id, project_name, project_path, _ = st.session_state.selected_project
+            flashcard_json_path = os.path.join(project_path, "flashcards", "approved.json")
+            os.makedirs(os.path.dirname(flashcard_json_path), exist_ok=True)
+
+            if "approved_flashcards" not in st.session_state:
+                st.session_state.approved_flashcards = pdf_handler.load_flashcard_list(flashcard_json_path)
+
+            # Initialize learning mode and index
+            if "learning_mode" not in st.session_state:
+                st.session_state.learning_mode = False
+            if "learning_index" not in st.session_state:
+                st.session_state.learning_index = 0
+            if "card_flipped" not in st.session_state:
+                st.session_state.card_flipped = False
+
+            # Start / Finish learning buttons
+            if not st.session_state.learning_mode:
+                if st.button("🎯 Start Learning"):
+                    if st.session_state.approved_flashcards:
+                        st.session_state.learning_mode = True
+                        st.session_state.learning_index = 0
+                        st.session_state.card_flipped = False
+                        st.rerun()  # Dodaj rerun tutaj
+                    else:
+                        st.warning("No flashcards to learn!")
+            else:
+                if st.button("🏁 Finish Learning"):
+                    st.session_state.learning_mode = False
+                    st.session_state.card_flipped = False
+                    st.rerun()  # Dodaj rerun tutaj
+
+            # Show flashcards
+            if st.session_state.approved_flashcards:
+                if st.session_state.learning_mode:
+                    idx = st.session_state.learning_index
+                    card = st.session_state.approved_flashcards[idx]
+
+                    # Header z licznikiem i przyciskami zarządzania
+                    header_col1, header_col2, header_col3 = st.columns([2, 1, 1])
+                    with header_col1:
+                        st.subheader(f"Flashcard {idx + 1} of {len(st.session_state.approved_flashcards)}")
+                    with header_col2:
+                        if st.button("✏️ Edit", key="edit_card"):
+                            st.session_state.original_flashcard = card.copy()  # Zapisz oryginał
+                            st.session_state.current_flashcard = card.copy()  # Użyj kopii do edycji
+                            st.session_state.generating_flashcard = True
+                            st.session_state.learning_mode = False  # Wyjdź z trybu nauki
+                            st.rerun()
+                    with header_col3:
+                        if st.button("❌ Delete", key="delete_card"):
+                            st.session_state.approved_flashcards.pop(idx)
+                            pdf_handler.save_flashcard_list(st.session_state.approved_flashcards, flashcard_json_path)
+                            # Adjust index if last card deleted
+                            if st.session_state.learning_index >= len(st.session_state.approved_flashcards):
+                                st.session_state.learning_index = max(0, len(st.session_state.approved_flashcards) - 1)
+                            if not st.session_state.approved_flashcards:
+                                st.session_state.learning_mode = False
+                            st.session_state.card_flipped = False
+                            st.rerun()
+
+                    st.markdown("---")
+
+                    # Główna fiszka - wyśrodkowana i mniejsza
+                    col_left, col_center, col_right = st.columns([1, 3, 1])
+                    with col_center:
+                        # Kontener na fiszkę z niestandardowym stylem
+                        if st.session_state.card_flipped:
+                            st.markdown(
+                                f"""
+                                <div style="
+                                    background-color: #d4edda; 
+                                    border: 2px solid #c3e6cb; 
+                                    border-radius: 10px; 
+                                    padding: 30px; 
+                                    text-align: center; 
+                                    min-height: 200px; 
+                                    display: flex; 
+                                    align-items: center; 
+                                    justify-content: center;
+                                    font-size: 18px;
+                                ">
+                                    <div>{card['back']}</div>
+                                </div>
+                                """, 
+                                unsafe_allow_html=True
+                            )
+                        else:
+                            st.markdown(
+                                f"""
+                                <div style="
+                                    background-color: #d1ecf1; 
+                                    border: 2px solid #bee5eb; 
+                                    border-radius: 10px; 
+                                    padding: 30px; 
+                                    text-align: center; 
+                                    min-height: 200px; 
+                                    display: flex; 
+                                    align-items: center; 
+                                    justify-content: center;
+                                    font-size: 18px;
+                                ">
+                                    <div>{card['front']}</div>
+                                </div>
+                                """, 
+                                unsafe_allow_html=True
+                            )
+
+                    st.markdown("<br>", unsafe_allow_html=True)
+
+                    # Przyciski nawigacji - wyśrodkowane
+                    nav_col1, nav_col2, nav_col3, nav_col4, nav_col5 = st.columns([1, 1, 1, 1, 1])
+
+                    with nav_col1:
+                        if st.button("⬅️ Previous", disabled=(idx == 0)):
+                            st.session_state.learning_index -= 1
+                            st.session_state.card_flipped = False
+                            st.rerun()
+
+                    with nav_col2:
+                        st.write("")  # Spacer
+
+                    with nav_col3:
+                        if st.button("🔄 Flip", key="flip_card"):
+                            st.session_state.card_flipped = not st.session_state.card_flipped
+                            st.rerun()
+
+                    with nav_col4:
+                        st.write("")  # Spacer
+
+                    with nav_col5:
+                        if st.button("➡️ Next", disabled=(idx == len(st.session_state.approved_flashcards) - 1)):
+                            st.session_state.learning_index += 1
+                            st.session_state.card_flipped = False
+                            st.rerun()
+
+                else:
+                    # Wyświetl listę fiszek tylko z frontem (pytaniem)
+                    st.subheader("✅ Your Flashcards")
+                    flashcards = st.session_state.approved_flashcards
+                    cols = st.columns(3)
+
+                    for idx, card in enumerate(flashcards):
+                        col = cols[idx % 3]
+                        with col:
+                            st.markdown(f"**{idx + 1}.** {card['front']}")
+
+            else:
+                st.info("No approved flashcards yet.")
+
+            st.markdown("---")
+
+            # Sekcja generowania nowej fiszki
+            col_generate, col_empty = st.columns([1, 3])
+            with col_generate:
+                if st.button("➕ Generate New Flashcard"):
+                    st.session_state.generating_flashcard = True
+                    # Nie usuwaj current_flashcard tutaj - pozwól mu zostać None
+                    st.rerun()
+
+            # GŁÓWNA ZMIANA: Uproszczenie logiki generowania fiszek
+            if st.session_state.get('generating_flashcard'):
+                st.markdown("### ✨ Flashcard Generator")
+                
+                # Sprawdź czy to edycja istniejącej fiszki
+                is_editing = st.session_state.get('original_flashcard') is not None
+
+                # Generuj nową fiszkę tylko jeśli nie ma current_flashcard i nie edytujemy
+                if not st.session_state.get('current_flashcard') and not is_editing:
+                    with st.spinner("Generating a new flashcard..."):
+                        try:
+                            context, _ = database_manager.get_RAG_context("General", project_id, top_k=15)
+                            flashcard_raw = pdf_handler.generate_flashcards(context, num_cards=1)
+                            flashcards = pdf_handler.parse_flashcards(flashcard_raw)
+                            if flashcards:
+                                st.session_state.current_flashcard = flashcards[0]
+                                st.success("New flashcard generated!")
+                                st.rerun()  # Rerun po wygenerowaniu
+                            else:
+                                st.error("Failed to generate a valid flashcard")
+                        except Exception as e:
+                            st.error(f"Flashcard generation error: {str(e)}")
+                            st.session_state.generating_flashcard = False
+
+                # Jeśli mamy fiszkę, pokaż formularz
+                if st.session_state.get('current_flashcard'):
+                    card = st.session_state['current_flashcard']
+                    
+                    # Pokaż informację czy to edycja czy nowa fiszka
+                    if is_editing:
+                        st.info("🔧 Editing existing flashcard")
+                    else:
+                        st.info("✨ Creating new flashcard")
+                    
+                    front = st.text_input("Front (Question)", card['front'], key="gen_front")
+                    back = st.text_area("Back (Answer)", card['back'], key="gen_back")
+
+                    col1, col2, col3, col4 = st.columns(4)
+                    
+                    with col1:
+                        if st.button("✅ Approve", key="approve_btn"):
+                            # Update if editing existing card
+                            updated_card = {'front': front, 'back': back}
+                            found_idx = None
+                            
+                            # Szukaj oryginalnej fiszki po zawartości
+                            original_card = st.session_state.get('original_flashcard')
+                            if original_card:
+                                for i, c in enumerate(st.session_state.approved_flashcards):
+                                    if c['front'] == original_card['front'] and c['back'] == original_card['back']:
+                                        found_idx = i
+                                        break
+                            
+                            if found_idx is not None:
+                                st.session_state.approved_flashcards[found_idx] = updated_card
+                                st.success("Flashcard updated!")
+                            else:
+                                st.session_state.approved_flashcards.append(updated_card)
+                                st.success("New flashcard added!")
+
+                            pdf_handler.save_flashcard_list(st.session_state.approved_flashcards, flashcard_json_path)
+                            
+                            # Wyczyść stan generowania
+                            st.session_state.current_flashcard = None
+                            st.session_state.generating_flashcard = False
+                            st.session_state.original_flashcard = None
+                            st.rerun()
+
+                    with col2:
+                        if st.button("✏️ Modify", key="modify_btn"):
+                            st.session_state.current_flashcard = {'front': front, 'back': back}
+                            st.info("Flashcard updated!")
+
+                    with col3:
+                        if st.button("🔄 Regenerate", key="regenerate_btn"):
+                            # Wyczyść obecną fiszkę i wygeneruj nową
+                            st.session_state.current_flashcard = None
+                            st.rerun()  # To spowoduje ponowne wygenerowanie
+
+                    with col4:
+                        if st.button("🚪 Finish", key="finish_btn"):
+                            st.session_state.current_flashcard = None
+                            st.session_state.generating_flashcard = False
+                            st.rerun()

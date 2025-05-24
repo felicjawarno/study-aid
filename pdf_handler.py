@@ -116,3 +116,70 @@ def parse_quiz_questions(quiz_text, quiz_json_path):
         json.dump(questions, f, indent=4)
     
     return questions
+
+def generate_flashcards(pdf_text, num_cards=10):
+    """Generates flashcards with strict JSON formatting"""
+    if not pdf_text.strip():
+        return ""
+    
+    prompt = f"""
+        Based on the following text, generate exactly {num_cards} flashcards in JSON format.
+Each flashcard should be an object with:
+- "front": a unique, concise question or topic (max 7 words), covering a different aspect than other cards, in language of the document
+- "back": a short, clear answer or key fact (max 15 words).
+
+Avoid repeating similar questions. Include different types such as definitions, purposes, examples, and key points.
+
+Text:
+{pdf_text[:10000]}
+        """
+
+    
+    try:
+        response = model.generate_content(prompt)
+        return response.text if response else ""
+    except Exception as e:
+        st.error(f"Flashcard generation error: {str(e)}")
+        return ""
+    
+import re
+
+def clean_json_block(raw_text):
+    cleaned = re.sub(r"^```json", "", raw_text.strip(), flags=re.IGNORECASE)
+    cleaned = re.sub(r"```$", "", cleaned.strip())
+    return cleaned.strip()
+
+def save_flashcard_list(flashcards, flashcard_json_path):
+    try:
+        with open(flashcard_json_path, 'w') as f:
+            json.dump(flashcards, f, indent=4)
+        st.success(f"Saved {len(flashcards)} flashcards to {flashcard_json_path}")
+    except Exception as e:
+        st.error(f"Failed to save flashcards: {str(e)}")
+
+def parse_flashcards(flashcard_text):
+    if not flashcard_text.strip():
+        return []
+    try:
+        cleaned_text = clean_json_block(flashcard_text)
+        flashcards = json.loads(cleaned_text)
+        return flashcards
+    except Exception as e:
+        st.error(f"Failed to parse flashcards: {str(e)}")
+        return []
+def load_flashcard_list(flashcard_json_path):
+    if not os.path.exists(flashcard_json_path):
+        st.info(f"No flashcard file found at {flashcard_json_path}, starting fresh.")
+        return []
+    
+    try:
+        with open(flashcard_json_path, 'r') as f:
+            flashcards = json.load(f)
+            st.success(f"Loaded {len(flashcards)} flashcards from {flashcard_json_path}")
+            return flashcards
+    except json.JSONDecodeError:
+        st.warning(f"Flashcard file {flashcard_json_path} is corrupted or empty. Starting with an empty list.")
+        return []
+    except Exception as e:
+        st.error(f"Failed to load flashcards: {str(e)}")
+        return []
