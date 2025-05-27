@@ -46,18 +46,12 @@ def initialize_mindmap(base_context, json_save_path):
     """
 
     try:
-        # Generate mind map structure using Gemini
         response = model.generate_content(prompt)
         json_str = re.search(r'\{.*\}', response.text, re.DOTALL).group()
         graph_data = json.loads(json_str)
-        # Save the generated JSON to a file
         with open(json_save_path, 'w') as f:
             json.dump(graph_data, f, indent=4)
-
-        # Create networkx graph
         G = nx.DiGraph()
-
-        # Add nodes with attributes
         for node in graph_data['nodes']:
             label = node['label'].strip()
             G.add_node(
@@ -66,15 +60,11 @@ def initialize_mindmap(base_context, json_save_path):
                 color=node.get('color', '#6a9df6'),
                 description=node.get('description', 'No description available')
             )
-
-        # Add edges with relationships
         for edge in graph_data['edges']:
             source = next(n['label'].strip() for n in graph_data['nodes'] if n['id'] == edge['source'])
             target = next(n['label'].strip() for n in graph_data['nodes'] if n['id'] == edge['target'])
             if source in G and target in G:
                 G.add_edge(source, target, relation=edge.get('relation', 'related'))
-
-        # Use the first node label as the root if the original topic is not found
         root_node = list(G.nodes())[0] 
 
         st.session_state.mindmap = {
@@ -122,23 +112,17 @@ def draw_interactive_mindmap():
 
     G = st.session_state.mindmap['graph']
     current_root = st.session_state.mindmap['current_focus']
-    
-    # Create subgraph based on current focus with safety checks
     try:
         subG = get_subgraph(G, current_root)
     except:
         subG = G
-    
-    # Create figure
+
     fig, ax = plt.subplots(figsize=(12, 8), facecolor='#f8f9fa')
-    
-    # Compute layout
     if subG.number_of_nodes() > 0:
         pos = nx.spring_layout(subG, k=1.5, iterations=100, seed=42)
     else:
         pos = {}
 
-    # Draw edges
     edge_styles = {
         'contains': {'style': 'dashed', 'width': 2, 'color': '#6c757d'},
         'related': {'style': 'solid', 'width': 1.5, 'color': '#495057'},
@@ -160,16 +144,15 @@ def draw_interactive_mindmap():
             arrowsize=15
         )
     
-    # Draw nodes
     node_colors = []
     node_sizes = []
     for node in subG.nodes():
         if node == st.session_state.mindmap.get('selected_node'):
-            node_colors.append('#ff9f1c')  # Selected
+            node_colors.append('#ff9f1c') 
         elif node == current_root:
-            node_colors.append('#2b8a3e')  # Current focus
+            node_colors.append('#2b8a3e') 
         else:
-            node_colors.append(subG.nodes[node].get('color', '#4dabf7'))  # Default
+            node_colors.append(subG.nodes[node].get('color', '#4dabf7'))  
         
         node_sizes.append(subG.nodes[node].get('size', 1500))
     
@@ -183,7 +166,6 @@ def draw_interactive_mindmap():
             alpha=0.9
         )
         
-        # Draw labels
         nx.draw_networkx_labels(
             subG, pos, ax=ax,
             labels={n: n for n in subG.nodes()},
@@ -193,10 +175,10 @@ def draw_interactive_mindmap():
             bbox=dict(facecolor='white', edgecolor='none', alpha=0.7, boxstyle='round,pad=0.3')
         )
 
-    # Display the figure
+
     st.pyplot(fig, use_container_width=True)
 
-    # Node information and navigation using Streamlit components
+
     col1, col2 = st.columns([3, 1])
     
     with col1:
@@ -215,7 +197,6 @@ def draw_interactive_mindmap():
         if st.button("🏠 Reset to root", use_container_width=True):
             navigate_reset()
 
-    # Node selection using coordinates
     if subG.number_of_nodes() > 0:
         st.markdown("### Select Node")
         selected = st.selectbox(

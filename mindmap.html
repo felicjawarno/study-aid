@@ -151,9 +151,6 @@
                       }
                   });
               
-
-              
-                  // explicitly using onItemAdd and this function as we need to save multiple values
                   let updateValueFilter = function() {
                       return function () {
                       filter['value'].push(arguments[0])
@@ -175,8 +172,7 @@
 
                   let addValues = function() {
                       return function () {
-                          // clear the current value options and add the selected attribute values
-                          // tom-select handles duplicates
+                        
                           let selectedProperty = arguments[0];
                           valueControl.clear();
                           valueControl.clearOptions();
@@ -214,8 +210,6 @@
 
                   let addProperties = function() {
                       return function () {
-                          // loops through the selected network item and adds the attributes to dropdown
-                          // tom-select handles duplicates
                           clearFilter(false)
                           if (arguments[0] === 'edge') {
                               for (let each in allEdges) {
@@ -255,9 +249,7 @@
                   });
 
                   function clearFilter(reset) {
-                      // utility function to clear all the selected filter options
-                      // if reset is set to true, the existing filter will be removed
-                      // else, only the dropdown options are cleared
+                    
                       propControl.clear();
                       propControl.clearOptions();
                       valueControl.clear();
@@ -274,19 +266,12 @@
                   }
 
                   function updateFilter(value, key) {
-                      // key could be 'item' or 'property' and value is as selected in dropdown
                       filter[key] = value
                   }
 
-              
-
-              // This method is responsible for drawing the graph, returns the drawn network
+            
               function drawGraph() {
                   var container = document.getElementById('mynetwork');
-
-                  
-
-                  // parsing and collecting nodes and edges from the python
                   nodes = new vis.DataSet([]);
                   edges = new vis.DataSet([]);
 
@@ -296,15 +281,9 @@
                     nodeColors[nodeId] = allNodes[nodeId].color;
                   }
                   allEdges = edges.get({ returnType: "Object" });
-                  // adding nodes and edges to the graph
                   data = {nodes: nodes, edges: edges};
 
                   var options = {"physics": {"solver": "forceAtlas2Based", "timestep": 0.5, "stabilization": {"enabled": true, "iterations": 1000}}, "nodes": {"scaling": {"min": 10, "max": 30}}, "interaction": {"hover": true, "tooltipDelay": 100, "hideEdgesOnDrag": true, "multiselect": true}};
-
-                  
-
-
-                  
 
                   network = new vis.Network(container, data, options);
 

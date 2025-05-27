@@ -11,7 +11,6 @@ pdf_parser = PDFParser()
 def connect():
     return sqlite3.connect(DB_NAME)
 
-# -- Insert functions --
 
 def insert_project(name, path):
     with connect() as conn:
@@ -24,7 +23,6 @@ def insert_document(project_id, file_name, file_content):
     file_hash = hash_file(file_content)
     with connect() as conn:
         c = conn.cursor()
-        # check if the document already exists
         c.execute("SELECT id FROM documents WHERE project_id = ? AND file_hash = ?", (project_id, file_hash))
         if c.fetchone():
             print(f"Document {file_name} already exists in project {project_id}.")
@@ -40,7 +38,6 @@ def parse_insert_document(project_id, document_id):
     print(f"Parsing document {document_id} for project {project_id}")
     with connect() as conn:
         c = conn.cursor()
-        # check if the document already exists
         c.execute("SELECT path FROM projects WHERE id = ?", (project_id,))
         project_path = c.fetchone()[0]
         c.execute("SELECT file_name FROM documents WHERE id = ?", (document_id,))
@@ -68,7 +65,6 @@ def insert_text_chunk(document_id, text, page_number, chunk_index, vector: np.nd
         conn.commit()
         return c.lastrowid
 
-# -- Helper functions --
 
 def hash_file(file_content: str):
     hasher = hashlib.sha256()
@@ -144,30 +140,27 @@ def sync_projects_directory():
         project_path = os.path.join(base_dir, project_name)
         os.makedirs(os.path.join(project_path, "documents"), exist_ok=True)
         if not os.path.isdir(project_path):
-            continue  # Skip non-directories
+            continue  
 
-        # Insert project if not already in DB
         if project_name not in existing_projects:
             project_id = insert_project(project_name, project_path)
         else:
             project_id = existing_projects[project_name][0]
 
-        # Get already stored documents for this project
         existing_docs = get_all_documents(project_id)
 
         for file_name in os.listdir(os.path.join(project_path, "documents")):
             if not file_name.lower().endswith(".pdf"):
-                continue  # Only process PDF files
+                continue  
 
             if file_name in existing_docs:
-                continue  # Already tracked in DB
+                continue  
 
             doc_id = insert_document(project_id, file_name, file_name)
             if doc_id:
                 parse_insert_document(project_id, doc_id)
 
 if __name__ == "__main__":
-    # Example usage
     insert_project("Project2", "/path/to/project1")
     print(get_all_projects())
 

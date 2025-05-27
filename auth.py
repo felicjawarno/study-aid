@@ -18,8 +18,6 @@ users = load_users()
 
 def login():
     st.subheader("🔐 Login")
-    
-    # Generate unique keys for this login form instance
     username_key = f"login_user_{st.session_state.rerun_key}"
     password_key = f"login_pass_{st.session_state.rerun_key}"
     login_button_key = f"login_btn_{st.session_state.rerun_key}"
@@ -43,8 +41,6 @@ def login():
 
 def register():
     st.subheader("📝 Register")
-    
-    # Generate unique keys for this registration form instance
     new_user_key = f"new_user_{st.session_state.rerun_key}"
     new_pass_key = f"new_pass_{st.session_state.rerun_key}"
     reg_button_key = f"reg_btn_{st.session_state.rerun_key}"

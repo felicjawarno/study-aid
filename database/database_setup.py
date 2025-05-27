@@ -7,7 +7,6 @@ def create_connection(db_file="database/projects.db"):
     conn = None
     try:
         conn = sqlite3.connect(db_file)
-        # Enable foreign key constraints
         conn.execute("PRAGMA foreign_keys = ON")
         return conn
     except Error as e:

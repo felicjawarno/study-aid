@@ -1,5 +1,5 @@
 import json
-
+import re
 import fitz
 import streamlit as st
 from client import model
@@ -7,6 +7,7 @@ import os
 
 def display_pdf_preview(pdf_path: str):
     """Displays an enhanced PDF preview from a file path"""
+
     if not os.path.exists(pdf_path):
         st.warning("The file does not exist.")
         return
@@ -81,7 +82,7 @@ def generate_quiz_questions(pdf_text, num_questions=10, difficulty="Medium"):
         return ""
 
 def parse_quiz_questions(quiz_text, quiz_json_path):
-    """Robust parsing of quiz questions"""
+    """Parses raw quiz text into a list of question dictionaries, extracting the question, options, and correct answer"""
     if not quiz_text.strip():
         return []
     
@@ -111,27 +112,27 @@ def parse_quiz_questions(quiz_text, quiz_json_path):
     if current_question and current_question['options'] and current_question['answer']:
         questions.append(current_question)
 
-    # Save questions to JSON file
+
     with open(quiz_json_path, 'w') as f:
         json.dump(questions, f, indent=4)
     
     return questions
 
 def generate_flashcards(pdf_text, num_cards=10):
-    """Generates flashcards with strict JSON formatting"""
+    """Generates flashcards in JSON format"""
     if not pdf_text.strip():
         return ""
     
     prompt = f"""
         Based on the following text, generate exactly {num_cards} flashcards in JSON format.
-Each flashcard should be an object with:
-- "front": a unique, concise question or topic (max 7 words), covering a different aspect than other cards, in language of the document
-- "back": a short, clear answer or key fact (max 15 words).
+        Each flashcard should be an object with:
+        - "front": a unique, concise question or topic (max 7 words), covering a different aspect than other cards, in language of the document
+        - "back": a short, clear answer or key fact (max 15 words).
 
-Avoid repeating similar questions. Include different types such as definitions, purposes, examples, and key points.
+        Avoid repeating similar questions. Include different types such as definitions, purposes, examples, and key points.
 
-Text:
-{pdf_text[:10000]}
+        Text:
+        {pdf_text[:10000]}
         """
 
     
@@ -142,14 +143,16 @@ Text:
         st.error(f"Flashcard generation error: {str(e)}")
         return ""
     
-import re
+
 
 def clean_json_block(raw_text):
+    """Returns clear JSON content without markdown code block"""
     cleaned = re.sub(r"^```json", "", raw_text.strip(), flags=re.IGNORECASE)
     cleaned = re.sub(r"```$", "", cleaned.strip())
     return cleaned.strip()
 
 def save_flashcard_list(flashcards, flashcard_json_path):
+    """Saves the given list of flashcards to a JSON"""
     try:
         with open(flashcard_json_path, 'w') as f:
             json.dump(flashcards, f, indent=4)
@@ -168,6 +171,7 @@ def parse_flashcards(flashcard_text):
         st.error(f"Failed to parse flashcards: {str(e)}")
         return []
 def load_flashcard_list(flashcard_json_path):
+    """Loads flashcards from a JSON file and returns them as a list."""
     if not os.path.exists(flashcard_json_path):
         st.info(f"No flashcard file found at {flashcard_json_path}, starting fresh.")
         return []
