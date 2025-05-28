@@ -2,23 +2,11 @@ import streamlit as st
 import networkx as nx
 import matplotlib.pyplot as plt
 import json
-import pdf_handler
 import re
 from client import model  
 
 def initialize_mindmap(base_context, json_save_path):
     """Initialize mind map based on the selected PDF using Gemini"""
-    # if not st.session_state.get('selected_pdf'):
-    #     st.error("Please select a PDF first.")
-    #     return None
-    #
-    # pdf_file = st.session_state.uploaded_pdfs[st.session_state.selected_pdf]
-    # pdf_text = pdf_handler.extract_text_from_pdf(pdf_file)  # Assuming pdf_handler is defined
-    #
-    # if not pdf_text.strip():
-    #     st.error("No text available in the selected PDF.")
-    #     return None
-
     prompt = base_context + f"""
 
     Return the structure as JSON with:

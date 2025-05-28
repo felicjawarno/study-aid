@@ -1,0 +1,4 @@
+.env
+database/projects.db
+projects
+__pycache__

@@ -1,0 +1,18 @@
+Aplikacja służy do wspomagania nauki, wykorzystując mechanizm RAG do generowania odpowiedzi na podstawie plików PDF. Wykorzystuje model językowy Gemini 2.0 Flash do generacji odpowiedzi oraz model Gemini embedding-001 do tworzenia embeddingów tekstu. Dane przechowywane są w bazie SQLite, a OCR służy do ekstrakcji treści z plików PDF.
+
+Funkcjonalności aplikacji: 
+-Tworzenie osobnych sesji nauki w formie folderów, do których można załączać wiele plików PDF, umożliwiając uporządkowane zarządzanie materiałami oraz późniejsze generowanie quizów i notatek.
+-Zadawanie pytań na podstawie zaimportowanych dokumentów, gdzie chatbot udziela odpowiedzi wyłącznie na podstawie zawartości PDF.
+-Generowanie quizów z możliwością wyboru poziomu trudności oraz liczby pytań.
+-Tworzenie graficznych map wiedzy (grafów tematycznych) na podstawie dokumentów, które pomagają w organizacji notatek i identyfikacji głównych tematów.
+-Automatyczne generowanie fiszek do nauki z opcją ich modyfikacji oraz wspieranie procesu nauki poprzez interaktywne narzędzia.
+
+Opis poszczególnych skryptów:
+-main.py - główny skrypt uruchamiający aplikację, inicjalizuje bazę danych, synchronizuje projekty i odpala interfejs główny
+-client.py - moduł odpowiedzialny za komunikację z modelem Gemini, zawiera funkcje do generowania odpowiedzi na pytania oraz zadawania pytań w kontekście przekazanych notatek.
+-graph.py - odpowiada za stworzenie, wizualizację i interaktywną nawigację po grafie, wykorzystuje bibliotekę NetworkX do budowy struktury grafu tzn. definiowania węzłów, krawędzi, relacji między nimi oraz pozwala na łatwe operowanie na podgrafach. Użytkownik może poruszać się po podgrafie, przełączając się między różnymi poziomami szczegółowości, co pozwala lepiej zrozumieć hierarchię i powiązania w wygenerowanej mapie myśli.
+-pdf_handler.py - zawiera funkcje do wyświetlania podglądu PDF, ekstrakcji tekstu, generowania quizów, tworzenia fiszek, parsowania wyników do JSON oraz zapisywania i wczytywania fiszek z plików. Obsługuje także czyszczenie i formatowanie danych zwracanych przez model.
+-app.py - zarządza całą logiką aplikacji — umożliwia wybór lub tworzenie projektów, zarządza przesyłaniem i wyświetlaniem PDF-ów, generowaniem quizów i fiszek, zadawaniem pytań na podstawie notatek, a także tworzeniem i eksploracją interaktywnych map myśli. Integruje funkcje z modułów pdf_handler, client, graph i database_manager. 
+-pdf_parse.py - służy do przetwarzania plików PDF, otwiera je za pomocą biblioteki fitz, wyciąga z nich tekst metodą get_text, a jeśli tekstu nie ma, to wykonuje OCR na obrazkach z PDF-a używając pytesseract. Następnie dzieli całość treści na chunki, które mają określoną liczbę słów, i dla tych kawałków generuje embeddingi za pomocą modelu Gemini. Wynikiem działania parsera jest lista słowników, gdzie każdy zawiera fragment tekstu, numer strony, embedding oraz indeks danego chunka. Oprócz tego w module znajduje się funkcja retrieve_question_answer, która bierze pytanie jako wejście i generuje jego embedding, co może potem posłużyć do wyszukiwania podobnych fragmentów w bazie danych lub zestawie dokumentów, na przykład przez obliczanie podobieństwa kosinusowego między embeddingami.
+-database_manager.py - zarządza bazą danych projektów, dokumentów i fragmentów tekstu. Umożliwia dodawanie projektów i dokumentów, sprawdza duplikaty po hashu pliku, zapisuje teksty wraz z embeddingami do bazy, wyszukuje semantycznie podobne fragmenty na podstawie wektorów oraz synchronizuje katalog projektów z bazą danych
+-database_setup.py - odpowiada za utworzenie połączenia z bazą danych SQLite oraz załadowanie schematu bazy danych z pliku SQL. Skrypt otwiera plik z definicjami tabel i wykonuje zawarte w nim polecenia, inicjując strukturę bazy.
